@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vrátenie tovaru | GymBeam</title>
+    <style>
+        :root {
+            --gb-red: #ff2d25;
+            --gb-black: #1a1a1a;
+            --gb-grey-light: #f4f4f4;
+            --gb-grey-medium: #e0e0e0;
+            --gb-grey-text: #666666;
+            --gb-border: #e0e0e0;
+            --gb-blue-info: #e7f1ff;
+        }
+
+        body { font-family: -apple-system, sans-serif; margin: 0; color: var(--gb-black); background-color: #fff; }
+        .container { display: flex; max-width: 1200px; margin: 0 auto; padding: 40px 20px; gap: 40px; }
+
+        /* Sidebar */
+        aside { width: 240px; flex-shrink: 0; }
+        aside ul { list-style: none; padding: 0; margin: 0; }
+        aside li { padding: 12px 0; font-size: 14px; color: var(--gb-grey-text); border-bottom: 1px solid var(--gb-border); cursor: pointer; }
+        aside li.active { color: var(--gb-red); font-weight: 700; }
+
+        main { flex: 1; }
+        .order-title { color: var(--gb-red); font-weight: 700; font-size: 18px; margin-bottom: 30px; text-transform: uppercase; }
+
+        /* Timeline */
+        .timeline { display: flex; align-items: center; justify-content: center; margin-bottom: 50px; position: relative; max-width: 600px; margin: 0 auto 50px auto; }
+        .timeline::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: var(--gb-grey-medium); z-index: 1; transform: translateY(-50%); }
+        .step-item { flex: 1; display: flex; justify-content: center; position: relative; z-index: 2; }
+        .step-circle { width: 40px; height: 40px; border-radius: 50%; background: #fff; border: 1px solid var(--gb-grey-medium); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--gb-grey-text); transition: 0.3s; }
+        .step-item.active .step-circle { background: var(--gb-black); color: #fff; border-color: var(--gb-black); }
+        .step-item.completed .step-circle { background: var(--gb-red); color: #fff; border-color: var(--gb-red); }
+
+        /* Sekcie */
+        .section { margin-bottom: 20px; border: 1px solid var(--gb-border); border-radius: 4px; overflow: hidden; opacity: 0.5; pointer-events: none; transition: 0.3s; }
+        .section.active { opacity: 1; pointer-events: all; }
+        .section-header { padding: 15px 20px; background: var(--gb-grey-light); font-weight: 700; text-transform: uppercase; font-size: 14px; }
+        .section-content { padding: 25px; display: none; }
+        .section.open .section-content { display: block; }
+
+        /* Produkty */
+        .product-item { display: flex; align-items: center; gap: 20px; padding: 15px 0; border-bottom: 1px solid var(--gb-grey-light); }
+        .product-img { width: 60px; height: 60px; object-fit: contain; }
+        .product-info { flex: 1; font-size: 14px; font-weight: 600; }
+        .custom-checkbox { width: 18px; height: 18px; accent-color: var(--gb-red); cursor: pointer; }
+        select { padding: 10px; border: 1px solid var(--gb-black); width: 250px; font-family: inherit; }
+
+        /* Doprava */
+        .shipping-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .shipping-card { border: 1px solid var(--gb-border); padding: 25px; border-radius: 4px; cursor: pointer; text-align: center; transition: 0.2s; }
+        .shipping-card.selected { border: 2px solid var(--gb-red); background: #fffafa; }
+        .shipping-card strong { display: block; text-transform: uppercase; font-size: 14px; margin-bottom: 5px; }
+
+        /* Info Banner */
+        .info-banner { background-color: var(--gb-blue-info); border: 1px solid #cce5ff; padding: 15px 20px; border-radius: 4px; font-size: 14px; display: flex; align-items: center; margin-bottom: 25px; color: #004085; text-align: left; }
+        .info-banner i { margin-right: 15px; font-style: normal; font-weight: bold; border: 2px solid #004085; border-radius: 50%; width: 20px; height: 20px; display: flex; justify-content: center; align-items: center; flex-shrink: 0; }
+
+        /* Form - GymBeam Web Style */
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .field { display: flex; flex-direction: column; gap: 5px; }
+        .field.full { grid-column: span 2; }
+        .field label { font-size: 14px; font-weight: 700; text-transform: none; }
+        .field label span { color: var(--gb-red); margin-left: 3px; }
+        
+        input { 
+            padding: 12px; 
+            border: 2px solid var(--gb-black); /* Hrubý čierny border podľa predlohy */
+            border-radius: 0; 
+            font-size: 14px;
+            font-family: inherit; 
+            outline: none;
+        }
+        input:focus { border-color: var(--gb-red); }
+
+        /* Tlačidlá */
+        .actions { display: flex; justify-content: space-between; margin-top: 30px; }
+        .btn { padding: 15px 45px; font-weight: 800; text-transform: uppercase; cursor: pointer; border: none; font-size: 13px; transition: 0.2s; }
+        .btn-back { background: #fff; border: 1px solid var(--gb-border); }
+        .btn-confirm { background: var(--gb-red); color: #fff; }
+        .btn-confirm:disabled { background: var(--gb-grey-medium); cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <aside>
+        <ul>
+            <li>Môj profil</li>
+            <li class="active">Moje objednávky</li>
+            <li>Vrátenie produktov</li>
+            <li>Adresná kniha</li>
+            <li>Informácie o profile</li>
+        </ul>
+    </aside>
+
+    <main>
+        <div class="order-title">Objednávka č. 15002217709</div>
+
+        <div class="timeline">
+            <div class="step-item active" id="t1"><div class="step-circle">1</div></div>
+            <div class="step-item" id="t2"><div class="step-circle">2</div></div>
+            <div class="step-item" id="t3"><div class="step-circle">3</div></div>
+        </div>
+
+        <div class="section active open" id="s1">
+            <div class="section-header">1. VÝBER TOVARU A DÔVODU</div>
+            <div class="section-content">
+                <div class="product-item">
+                    <input type="checkbox" class="custom-checkbox" onchange="toggleProduct(this)">
+                    <img src="https://gymbeam.sk/media/catalog/product/cache/1/image/1800x/040ec09b1e35df139433887a97daa66f/s/h/shaker_transparent_black_700ml_gymbeam_1.jpg" class="product-img">
+                    <div class="product-info">Šejker Transparent Black 700 ml - GymBeam</div>
+                    <select disabled onchange="validateStep1()">
+                        <option value="" disabled selected>Vyberte dôvod vrátenia</option>
+                        <option>Nepáči sa mi materiál</option>
+                        <option>Poškodený tovar</option>
+                        <option>Nesprávna veľkosť</option>
+                    </select>
+                </div>
+                <div class="product-item">
+                    <input type="checkbox" class="custom-checkbox" onchange="toggleProduct(this)">
+                    <img src="https://gymbeam.sk/media/catalog/product/cache/1/image/1800x/d/a/damske_sortky_biker_black_1.jpg" class="product-img">
+                    <div class="product-info">Dámske šortky Biker Black - GymBeam</div>
+                    <select disabled onchange="validateStep1()">
+                        <option value="" disabled selected>Vyberte dôvod vrátenia</option>
+                        <option>Nesedí mi strih</option>
+                        <option>Iná predstava o produkte</option>
+                    </select>
+                </div>
+                <div class="actions" style="justify-content: flex-end;">
+                    <button class="btn btn-confirm" id="next1" disabled onclick="goToStep(2)">Pokračovať</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="section" id="s2">
+            <div class="section-header">2. SPÔSOB VRÁTENIA</div>
+            <div class="section-content">
+                <div class="shipping-grid">
+                    <div class="shipping-card" onclick="selectShipping('locker', this)">
+                        <strong>Locker / Balíkobox</strong>
+                        <span>Vrátenie cez samoobslužný box</span>
+                    </div>
+                    <div class="shipping-card" onclick="selectShipping('courier', this)">
+                        <strong>Kuriér</strong>
+                        <span>Vyzdvihnutie na vašej adrese kuriérom</span>
+                    </div>
+                </div>
+                <div class="actions">
+                    <button class="btn btn-back" onclick="goToStep(1)">Späť</button>
+                    <button class="btn btn-confirm" id="next2" disabled onclick="handleStep2Next()">Pokračovať</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="section" id="s3">
+            <div class="section-header">3. KONTAKTNÉ A PLATOBNÉ ÚDAJE</div>
+            <div class="section-content">
+                <div class="info-banner">
+                    <i>i</i>
+                    <span>Objednávka bola zaplatená na dobierku. Na vrátenie peňazí je potrebné zadať IBAN, na ktorý vám peniaze pošleme.</span>
+                </div>
+                
+                <div class="form-grid">
+                    <div class="field full">
+                        <label>IBAN pre vrátenie peňazí <span>*</span></label>
+                        <input type="text" placeholder="SK00 0000 0000 0000 0000 0000">
+                    </div>
+                    
+                    <div id="courier-only-fields" class="form-grid" style="grid-column: span 2; display: none;">
+                        <div class="field">
+                            <label>Meno <span>*</span></label>
+                            <input type="text" value="Kateryna" placeholder="Zadajte meno">
+                        </div>
+                        <div class="field">
+                            <label>Priezvisko <span>*</span></label>
+                            <input type="text" value="Afanasieva" placeholder="Zadajte priezvisko">
+                        </div>
+                        <div class="field full">
+                            <label>Ulica <span>*</span></label>
+                            <input type="text" placeholder="Zadajte ulicu">
+                        </div>
+                        <div class="field">
+                            <label>Mesto <span>*</span></label>
+                            <input type="text" placeholder="Zadajte mesto">
+                        </div>
+                        <div class="field">
+                            <label>PSČ <span>*</span></label>
+                            <input type="text" placeholder="Zadajte PSČ">
+                        </div>
+                        <div class="field full">
+                            <label>Telefónne číslo <span>*</span></label>
+                            <input type="tel" placeholder="+421">
+                        </div>
+                        <div class="field full">
+                            <label>E-mail <span>*</span></label>
+                            <input type="email" placeholder="vas@email.sk">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button class="btn btn-back" onclick="goToStep(2)">Späť</button>
+                    <button class="btn btn-confirm">Potvrdiť vrátenie</button>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    let selectedMethod = null;
+
+    function toggleProduct(checkbox) {
+        const select = checkbox.parentElement.querySelector('select');
+        select.disabled = !checkbox.checked;
+        if (!checkbox.checked) select.value = "";
+        validateStep1();
+    }
+
+    function validateStep1() {
+        const checked = Array.from(document.querySelectorAll('.custom-checkbox')).some(c => c.checked);
+        const selectsFilled = Array.from(document.querySelectorAll('select:not([disabled])')).every(s => s.value !== "");
+        document.getElementById('next1').disabled = !(checked && selectsFilled);
+    }
+
+    function selectShipping(method, element) {
+        selectedMethod = method;
+        document.querySelectorAll('.shipping-card').forEach(c => c.classList.remove('selected'));
+        element.classList.add('selected');
+        document.getElementById('next2').disabled = false;
+    }
+
+    function handleStep2Next() {
+        const courierFields = document.getElementById('courier-only-fields');
+        if (selectedMethod === 'courier') {
+            courierFields.style.display = 'grid';
+        } else {
+            courierFields.style.display = 'none';
+        }
+        goToStep(3);
+    }
+
+    function goToStep(step) {
+        document.querySelectorAll('.section').forEach((s, i) => {
+            const stepIdx = i + 1;
+            s.classList.remove('active', 'open');
+            const timelineStep = document.getElementById('t' + stepIdx);
+            timelineStep.classList.remove('active', 'completed');
+            
+            if (stepIdx < step) timelineStep.classList.add('completed');
+            if (stepIdx === step) {
+                s.classList.add('active', 'open');
+                timelineStep.classList.add('active');
+            }
+        });
+        document.getElementById('s' + step).scrollIntoView({ behavior: 'smooth' });
+    }
+</script>
+</body>
+</html>
